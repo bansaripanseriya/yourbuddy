@@ -7,7 +7,7 @@ import random
 
 from report_utils import REPORT_PATH, generate_and_save_report
 
-from db import (
+from database import (
     create_user as db_create_user,
     get_user_profile as db_get_user_profile,
     normalize_identifier as db_normalize_identifier,
