@@ -188,13 +188,15 @@ def _make_keras_compat_custom_objects():
 
 
 def load_model(path=None):
-    """Load the emotion model. Tries SavedModel dir first (best compatibility), then .keras file."""
+    """Load the emotion model. Tries SavedModel dir first (best compatibility), then .keras file.
+    Returns (model, error_message). model is None on failure; error_message is set when the reason is known (e.g. TensorFlow not installed)."""
     try:
         import tensorflow as tf
-    except ImportError as e:
-        raise ImportError(
-            "TensorFlow is required to load the emotion model. Install it with: pip install tensorflow"
-        ) from e
+    except ImportError:
+        return None, (
+            "TensorFlow is not installed. Add 'tensorflow-cpu' to requirements.txt and redeploy, "
+            "or run: pip install tensorflow-cpu"
+        )
     # Try SavedModel directory first (avoids Keras config version mismatches)
     candidates = (path,) if path else (MODEL_PATH_SAVEDMODEL, MODEL_PATH_KERAS)
     for candidate in candidates:
@@ -202,25 +204,28 @@ def load_model(path=None):
             continue
         if os.path.isdir(candidate) and os.path.isfile(os.path.join(candidate, "saved_model.pb")):
             try:
-                return tf.keras.models.load_model(candidate)
+                return tf.keras.models.load_model(candidate), None
             except Exception as e:
-                raise RuntimeError(f"Failed to load SavedModel from {candidate}: {e}") from e
+                return None, f"Failed to load SavedModel from {candidate}: {e}"
         if os.path.isfile(candidate):
             try:
-                return tf.keras.models.load_model(candidate)
+                return tf.keras.models.load_model(candidate), None
             except Exception as e:
                 if "quantization_config" in str(e):
                     try:
                         return tf.keras.models.load_model(
                             candidate, custom_objects=_make_keras_compat_custom_objects()
-                        )
+                        ), None
                     except Exception as e2:
-                        raise RuntimeError(
-                            f"Failed to load model (version mismatch). Re-save from notebook: "
-                            f"model.save('emotion_model', save_format='tf'). Error: {e2}"
-                        ) from e2
-                raise RuntimeError(f"Failed to load model from {candidate}: {e}") from e
-    return None
+                        return None, (
+                            f"Model version mismatch. Re-export from notebook: "
+                            f"model.export('emotion_model'). Error: {e2}"
+                        )
+                return None, f"Failed to load model from {candidate}: {e}"
+    return None, (
+        "Emotion model not found. Export from image_model.ipynb: model.export('emotion_model'), "
+        "then add the emotion_model/ folder to your app (e.g. commit it or deploy it)."
+    )
 
 
 def generate_and_save_report(image_bytes_or_path, student_id, report_path=REPORT_PATH):
@@ -233,22 +238,12 @@ def generate_and_save_report(image_bytes_or_path, student_id, report_path=REPORT
     except Exception as e:
         return None, f"Failed to load image: {e}"
 
-    _load_error = None
-    try:
-        model = load_model()
-    except Exception as e:
-        model = None
-        _load_error = str(e)
+    model, _load_error = load_model()
     if model is None:
-        if _load_error and "tensorflow" in _load_error.lower():
-            hint = "Install TensorFlow: pip install tensorflow"
-        elif _load_error:
-            hint = _load_error
-        else:
-            hint = (
-                "Save the model from image_model.ipynb: run the cell that does model.save('emotion_model', save_format='tf'), "
-                "so the folder emotion_model/ is created next to app.py."
-            )
+        hint = _load_error or (
+            "Export the model from image_model.ipynb: model.export('emotion_model'), "
+            "then ensure the emotion_model/ folder is deployed with the app."
+        )
         placeholder = (
             "==================================================================\n"
             "AI-ASSISTED MENTAL HEALTH SCREENING REPORT\n"
