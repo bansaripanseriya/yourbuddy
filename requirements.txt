@@ -10,3 +10,5 @@ twilio
 python-decouple
 supabase
 reportlab
+tensorflow
+Pillow

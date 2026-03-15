@@ -167,14 +167,19 @@ def generate_report_text(image_array, model, class_names, student_id="Student_00
 
 
 def load_model(path=MODEL_PATH):
-    """Load the Keras model if it exists."""
+    """Load the Keras model if it exists. Returns None if file missing or load fails."""
     if not os.path.isfile(path):
         return None
     try:
         import tensorflow as tf
         return tf.keras.models.load_model(path)
-    except Exception:
-        return None
+    except ImportError as e:
+        # TensorFlow not installed: pip install tensorflow
+        raise ImportError(
+            "TensorFlow is required to load the emotion model. Install it with: pip install tensorflow"
+        ) from e
+    except Exception as e:
+        raise RuntimeError(f"Failed to load model from {path}: {e}") from e
 
 
 def generate_and_save_report(image_bytes_or_path, student_id, report_path=REPORT_PATH):
@@ -187,8 +192,22 @@ def generate_and_save_report(image_bytes_or_path, student_id, report_path=REPORT
     except Exception as e:
         return None, f"Failed to load image: {e}"
 
-    model = load_model()
+    _load_error = None
+    try:
+        model = load_model()
+    except Exception as e:
+        model = None
+        _load_error = str(e)
     if model is None:
+        if _load_error and "tensorflow" in _load_error.lower():
+            hint = "Install TensorFlow: pip install tensorflow"
+        elif _load_error:
+            hint = _load_error
+        else:
+            hint = (
+                "Save the model from image_model.ipynb: run the cell with model.save('emotion_model.keras'), "
+                "and ensure emotion_model.keras is in the same folder as app.py."
+            )
         placeholder = (
             "==================================================================\n"
             "AI-ASSISTED MENTAL HEALTH SCREENING REPORT\n"
@@ -198,8 +217,7 @@ def generate_and_save_report(image_bytes_or_path, student_id, report_path=REPORT
             "----------------------------------------------------------------\n"
             "MODEL PREDICTION\n"
             "----------------------------------------------------------------\n\n"
-            "No model loaded. Please save the model from image_model.ipynb first:\n"
-            "  model.save('emotion_model.keras')\n\n"
+            f"No model loaded. {hint}\n\n"
             "Then run this app again to generate predictions from your image.\n\n"
             "----------------------------------------------------------------\n"
             "DISCLAIMER\n"
@@ -210,7 +228,7 @@ def generate_and_save_report(image_bytes_or_path, student_id, report_path=REPORT
         )
         with open(report_path, "w", encoding="utf-8") as f:
             f.write(placeholder)
-        return placeholder, "Model not found. Save the model from the notebook as emotion_model.keras"
+        return placeholder, f"Model not loaded. {hint}"
 
     report_text = generate_report_text(
         image_array, model, DEFAULT_CLASS_NAMES, student_id=student_id
