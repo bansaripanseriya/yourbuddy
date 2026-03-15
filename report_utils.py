@@ -13,7 +13,9 @@ DEFAULT_CLASS_NAMES = [
 
 _REPORT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPORT_PATH = os.path.join(_REPORT_DIR, "clinical_report.txt")
-MODEL_PATH = os.path.join(_REPORT_DIR, "emotion_model.keras")
+# Prefer SavedModel (directory) for cross-version compatibility; fallback to .keras
+MODEL_PATH_SAVEDMODEL = os.path.join(_REPORT_DIR, "emotion_model")
+MODEL_PATH_KERAS = os.path.join(_REPORT_DIR, "emotion_model.keras")
 
 
 def load_and_preprocess_image(image_bytes_or_path, size=(48, 48)):
@@ -166,20 +168,36 @@ def generate_report_text(image_array, model, class_names, student_id="Student_00
     return "\n".join(lines)
 
 
-def load_model(path=MODEL_PATH):
-    """Load the Keras model if it exists. Returns None if file missing or load fails."""
-    if not os.path.isfile(path):
-        return None
+def load_model(path=None):
+    """Load the emotion model. Tries SavedModel dir first (best compatibility), then .keras file."""
     try:
         import tensorflow as tf
-        return tf.keras.models.load_model(path)
     except ImportError as e:
-        # TensorFlow not installed: pip install tensorflow
         raise ImportError(
             "TensorFlow is required to load the emotion model. Install it with: pip install tensorflow"
         ) from e
-    except Exception as e:
-        raise RuntimeError(f"Failed to load model from {path}: {e}") from e
+    # Try SavedModel directory first (avoids Keras config version mismatches)
+    candidates = (path,) if path else (MODEL_PATH_SAVEDMODEL, MODEL_PATH_KERAS)
+    for candidate in candidates:
+        if candidate is None:
+            continue
+        if os.path.isdir(candidate) and os.path.isfile(os.path.join(candidate, "saved_model.pb")):
+            try:
+                return tf.keras.models.load_model(candidate)
+            except Exception as e:
+                raise RuntimeError(f"Failed to load SavedModel from {candidate}: {e}") from e
+        if os.path.isfile(candidate):
+            try:
+                return tf.keras.models.load_model(candidate)
+            except Exception as e:
+                if candidate == MODEL_PATH_KERAS and "quantization_config" in str(e):
+                    raise RuntimeError(
+                        "The .keras file was saved with a different Keras version. "
+                        "Re-save the model from the notebook using SavedModel format: "
+                        "model.save('emotion_model', save_format='tf')"
+                    ) from e
+                raise RuntimeError(f"Failed to load model from {candidate}: {e}") from e
+    return None
 
 
 def generate_and_save_report(image_bytes_or_path, student_id, report_path=REPORT_PATH):
@@ -205,8 +223,8 @@ def generate_and_save_report(image_bytes_or_path, student_id, report_path=REPORT
             hint = _load_error
         else:
             hint = (
-                "Save the model from image_model.ipynb: run the cell with model.save('emotion_model.keras'), "
-                "and ensure emotion_model.keras is in the same folder as app.py."
+                "Save the model from image_model.ipynb: run the cell that does model.save('emotion_model', save_format='tf'), "
+                "so the folder emotion_model/ is created next to app.py."
             )
         placeholder = (
             "==================================================================\n"

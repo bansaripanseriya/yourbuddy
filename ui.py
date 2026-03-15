@@ -669,7 +669,7 @@ def render_download_section(
         pdf_bytes = pdf_bytes_callback()
         if pdf_bytes:
             st.download_button(
-                "📥 Download report as PDF",
+                "📥 Download full report",
                 data=pdf_bytes,
                 file_name="clinical_report.pdf",
                 mime="application/pdf",
