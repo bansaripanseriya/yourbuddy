@@ -7,3 +7,13 @@ scipy
 scikit-learn
 xgboost
 shap
+
+# App UI and report
+streamlit
+reportlab
+Pillow
+tensorflow
+python-decouple
+
+# Optional: SMS OTP (forgot password)
+twilio

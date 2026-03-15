@@ -38,6 +38,7 @@ desktop.ini
 
 # Data
 dataset/
+yourbuddy.db
 
 # Logs and temp
 *.log
