@@ -42,14 +42,21 @@ def load_and_preprocess_image(image_bytes_or_path, size=(48, 48)):
 def generate_report_text(image_array, model, class_names, student_id="Student_001"):
     """Generate the clinical report text (same logic as in image_model.ipynb)."""
     img_array = np.expand_dims(image_array, axis=0)
-    # Support Keras Model (.predict) and SavedModel _UserObject (callable only, no .predict)
-    try:
-        if hasattr(model, "predict") and callable(getattr(model, "predict")):
-            pred_out = model.predict(img_array, verbose=0)
-        else:
-            pred_out = model(img_array, training=False)
-    except TypeError:
-        pred_out = model(img_array)
+
+    import tensorflow as tf
+
+    # Case 1: Normal Keras model
+    if hasattr(model, "predict"):
+        pred_out = model.predict(img_array, verbose=0)
+
+    # Case 2: TensorFlow SavedModel (_UserObject)
+    elif hasattr(model, "signatures"):
+        infer = model.signatures["serving_default"]
+        pred = infer(tf.constant(img_array))
+        pred_out = list(pred.values())[0].numpy()
+
+    else:
+        raise RuntimeError("Unsupported model type loaded.")
     # Handle dict output (e.g. SavedModel signature)
     if isinstance(pred_out, dict):
         pred_out = next(iter(pred_out.values()))
