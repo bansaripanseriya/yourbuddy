@@ -168,6 +168,22 @@ def generate_report_text(image_array, model, class_names, student_id="Student_00
     return "\n".join(lines)
 
 
+def _make_keras_compat_custom_objects():
+    """Custom layers that strip unknown config keys so .keras saved with newer Keras can load."""
+    try:
+        import tensorflow as tf
+    except ImportError:
+        return {}
+    # Dense from newer Keras includes quantization_config; older Keras doesn't accept it
+    class DenseCompat(tf.keras.layers.Dense):
+        @classmethod
+        def from_config(cls, config):
+            config = dict(config)
+            config.pop("quantization_config", None)
+            return super().from_config(config)
+    return {"Dense": DenseCompat}
+
+
 def load_model(path=None):
     """Load the emotion model. Tries SavedModel dir first (best compatibility), then .keras file."""
     try:
@@ -190,12 +206,16 @@ def load_model(path=None):
             try:
                 return tf.keras.models.load_model(candidate)
             except Exception as e:
-                if candidate == MODEL_PATH_KERAS and "quantization_config" in str(e):
-                    raise RuntimeError(
-                        "The .keras file was saved with a different Keras version. "
-                        "Re-save the model from the notebook using SavedModel format: "
-                        "model.save('emotion_model', save_format='tf')"
-                    ) from e
+                if "quantization_config" in str(e):
+                    try:
+                        return tf.keras.models.load_model(
+                            candidate, custom_objects=_make_keras_compat_custom_objects()
+                        )
+                    except Exception as e2:
+                        raise RuntimeError(
+                            f"Failed to load model (version mismatch). Re-save from notebook: "
+                            f"model.save('emotion_model', save_format='tf'). Error: {e2}"
+                        ) from e2
                 raise RuntimeError(f"Failed to load model from {candidate}: {e}") from e
     return None
 
