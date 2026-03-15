@@ -11,8 +11,9 @@ DEFAULT_CLASS_NAMES = [
     "angry", "disgust", "fear", "happy", "neutral", "sad", "surprise"
 ]
 
-REPORT_PATH = "clinical_report.txt"
-MODEL_PATH = "emotion_model.keras"
+_REPORT_DIR = os.path.dirname(os.path.abspath(__file__))
+REPORT_PATH = os.path.join(_REPORT_DIR, "clinical_report.txt")
+MODEL_PATH = os.path.join(_REPORT_DIR, "emotion_model.keras")
 
 
 def load_and_preprocess_image(image_bytes_or_path, size=(48, 48)):
