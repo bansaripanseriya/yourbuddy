@@ -1,19 +1,10 @@
-# Mental Health Detection notebook dependencies
-numpy
+streamlit
 pandas
+numpy
+scikit-learn
 matplotlib
 seaborn
-scipy
-scikit-learn
 xgboost
-shap
-
-# App UI and report
-streamlit
-reportlab
-Pillow
-tensorflow
-python-decouple
-
-# Optional: SMS OTP (forgot password)
+requests
 twilio
+python-decouple
