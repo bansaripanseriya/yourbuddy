@@ -241,7 +241,7 @@ def generate_and_save_report(image_bytes_or_path, student_id, report_path=REPORT
         _load_error = str(e)
     if model is None:
         if _load_error and "tensorflow" in _load_error.lower():
-            hint = "Install TensorFlow: pip install tensorflow"
+            hint = "Install TensorFlow: pip install tensorflow-cpu (or tensorflow)."
         elif _load_error:
             hint = _load_error
         else:
