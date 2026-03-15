@@ -8,3 +8,4 @@ xgboost
 requests
 twilio
 python-decouple
+supabase
