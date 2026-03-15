@@ -36,6 +36,9 @@ desktop.ini
 .env.local
 *.pem
 
+# Data
+dataset/
+
 # Logs and temp
 *.log
 *.tmp
