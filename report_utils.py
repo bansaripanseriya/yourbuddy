@@ -187,27 +187,39 @@ def _make_keras_compat_custom_objects():
     return {"Dense": DenseCompat}
 
 
-import streamlit as st
-
-@st.cache_resource
 def load_model(path=None):
+    """Load the emotion model. Tries SavedModel dir first (best compatibility), then .keras file."""
     try:
         import tensorflow as tf
     except ImportError as e:
         raise ImportError(
             "TensorFlow is required to load the emotion model. Install it with: pip install tensorflow"
         ) from e
-
+    # Try SavedModel directory first (avoids Keras config version mismatches)
     candidates = (path,) if path else (MODEL_PATH_SAVEDMODEL, MODEL_PATH_KERAS)
-
     for candidate in candidates:
         if candidate is None:
             continue
         if os.path.isdir(candidate) and os.path.isfile(os.path.join(candidate, "saved_model.pb")):
-            return tf.keras.models.load_model(candidate)
+            try:
+                return tf.keras.models.load_model(candidate)
+            except Exception as e:
+                raise RuntimeError(f"Failed to load SavedModel from {candidate}: {e}") from e
         if os.path.isfile(candidate):
-            return tf.keras.models.load_model(candidate)
-
+            try:
+                return tf.keras.models.load_model(candidate)
+            except Exception as e:
+                if "quantization_config" in str(e):
+                    try:
+                        return tf.keras.models.load_model(
+                            candidate, custom_objects=_make_keras_compat_custom_objects()
+                        )
+                    except Exception as e2:
+                        raise RuntimeError(
+                            f"Failed to load model (version mismatch). Re-save from notebook: "
+                            f"model.save('emotion_model', save_format='tf'). Error: {e2}"
+                        ) from e2
+                raise RuntimeError(f"Failed to load model from {candidate}: {e}") from e
     return None
 
 
@@ -229,7 +241,7 @@ def generate_and_save_report(image_bytes_or_path, student_id, report_path=REPORT
         _load_error = str(e)
     if model is None:
         if _load_error and "tensorflow" in _load_error.lower():
-            hint = "Install TensorFlow: pip install tensorflow-cpu (or tensorflow)."
+            hint = "Install TensorFlow: pip install tensorflow"
         elif _load_error:
             hint = _load_error
         else:
