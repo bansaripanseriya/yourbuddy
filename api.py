@@ -19,7 +19,22 @@ from database import (
     verify_and_consume_otp as db_verify_and_consume_otp,
     verify_user as db_verify_user,
 )
-from otp_sender import _is_email, send_contact_email, send_otp_email, send_otp_sms
+try:
+    from otp_sender import _is_email, send_contact_email, send_otp_email, send_otp_sms
+except (ImportError, KeyError):
+    def _is_email(identifier: str) -> bool:
+        return "@" in (identifier or "")
+
+    def send_otp_email(to_address: str, code: str) -> tuple[bool, str]:
+        return False, "Email sending is not configured."
+
+    def send_contact_email(
+        sender_name: str, sender_email: str, message: str, logged_in_username: str | None = None
+    ) -> tuple[bool, str]:
+        return False, "Contact form is not configured."
+
+    def send_otp_sms(phone_number: str, code: str) -> tuple[bool, str]:
+        return False, "SMS is not configured."
 
 __all__ = [
     "REPORT_PATH",
