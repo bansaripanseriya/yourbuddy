@@ -1,0 +1,9 @@
+# Mental Health Detection notebook dependencies
+numpy
+pandas
+matplotlib
+seaborn
+scipy
+scikit-learn
+xgboost
+shap
