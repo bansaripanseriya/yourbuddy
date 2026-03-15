@@ -171,8 +171,8 @@ def load_model(path=MODEL_PATH):
     if not os.path.isfile(path):
         return None
     try:
-        from keras.models import load_model
-        return load_model(path)
+        import tensorflow as tf
+        return tf.keras.models.load_model(path)
     except ImportError as e:
         # TensorFlow not installed: pip install tensorflow
         raise ImportError(
