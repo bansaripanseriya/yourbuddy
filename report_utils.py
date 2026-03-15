@@ -42,7 +42,15 @@ def load_and_preprocess_image(image_bytes_or_path, size=(48, 48)):
 def generate_report_text(image_array, model, class_names, student_id="Student_001"):
     """Generate the clinical report text (same logic as in image_model.ipynb)."""
     img_array = np.expand_dims(image_array, axis=0)
-    predictions = model.predict(img_array, verbose=0)[0]
+    # Support both Keras Model (.predict) and exported SavedModel (callable)
+    if hasattr(model, "predict") and callable(getattr(model, "predict")):
+        pred_out = model.predict(img_array, verbose=0)
+    else:
+        pred_out = model(img_array, training=False)
+    pred_out = np.asarray(pred_out)
+    if pred_out.ndim > 1:
+        pred_out = pred_out[0]
+    predictions = np.asarray(pred_out).flatten()
     pred_index = int(np.argmax(predictions))
     confidence = float(predictions[pred_index])
     emotion = class_names[pred_index].strip().lower()
