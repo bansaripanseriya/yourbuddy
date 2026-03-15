@@ -1,0 +1,52 @@
+==================================================================
+AI-ASSISTED MENTAL HEALTH SCREENING REPORT
+==================================================================
+
+Student ID: Bansari
+Analysis Time: 2026-03-15 22:35
+
+---------------------------------------------------------------
+MODEL PREDICTION
+---------------------------------------------------------------
+
+Primary Emotion Detected: NEUTRAL
+Confidence Score: 35.52%
+Interpretation: Low confidence prediction; the model is somewhat uncertain
+
+Model also considered:
+
+  • Neutral    : 35.52%
+  • Happy      : 28.01%
+  • Angry      : 23.44%
+
+---------------------------------------------------------------
+WHY THE MODEL MADE THIS DECISION
+---------------------------------------------------------------
+
+The CNN analyzed these visible facial regions:
+  • Eye region
+  • Eyebrow shape/tension
+  • Mouth curvature
+  • Overall facial muscle activation
+
+Key visual patterns observed:
+  • Facial muscles appear balanced without a strong emotional signal
+  • No dominant activation in mouth or eyebrow regions
+  • Expression is relatively stable and non-exaggerated
+
+---------------------------------------------------------------
+MENTAL HEALTH INTERPRETATION
+---------------------------------------------------------------
+
+This suggests no strong visible emotional activation at this moment.
+
+This is not a diagnosis. It is an AI-assisted emotional screening result.
+
+---------------------------------------------------------------
+DISCLAIMER
+---------------------------------------------------------------
+
+This system provides AI-assisted screening only.
+Final assessment must be performed by qualified mental health professionals.
+
+==================================================================

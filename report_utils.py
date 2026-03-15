@@ -174,13 +174,16 @@ def _make_keras_compat_custom_objects():
         import tensorflow as tf
     except ImportError:
         return {}
-    # Dense from newer Keras includes quantization_config; older Keras doesn't accept it
+    # Dense from newer Keras includes quantization_config; older Keras doesn't accept it.
+    # Build a new dict so the parent never sees unknown keys (config may be non-mutable).
+    _SKIP_KEYS = frozenset({"quantization_config"})
+
     class DenseCompat(tf.keras.layers.Dense):
         @classmethod
         def from_config(cls, config):
-            config = dict(config)
-            config.pop("quantization_config", None)
-            return super().from_config(config)
+            # Pass only keys the parent Dense accepts (avoid quantization_config, etc.)
+            config_clean = {k: v for k, v in dict(config).items() if k not in _SKIP_KEYS}
+            return super().from_config(config_clean)
     return {"Dense": DenseCompat}
 
 

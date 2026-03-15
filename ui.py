@@ -677,7 +677,7 @@ def render_download_section(
         else:
             st.caption("Install reportlab for PDF download: pip install reportlab")
     else:
-        if st.button("📥 Download report as PDF", type="primary"):
+        if st.button("📥 Download full report", type="primary"):
             on_download_click_callback()
 
     # Open login modal when user clicked Download (header login opens modal from app.py)
